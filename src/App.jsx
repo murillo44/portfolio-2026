@@ -265,13 +265,14 @@ function App() {
               {/* BOTÓN DOWNLOAD CV CONFIGURADO */}
               <motion.a 
                href="/cv.pdf" 
-               download="Mateo_Murillo_CV.pdf"
+               target="_blank" 
+               rel="noopener noreferrer"
                whileHover={{ scale: 1.02 }} 
                whileTap={{ scale: 0.98 }} 
                className="px-6 py-3 bg-white text-black text-[10px] font-bold tracking-[0.2em] uppercase rounded-sm hover:bg-cyan-400 transition-colors inline-block text-center cursor-pointer"
-              >
-               Download CV
-              </motion.a>
+>
+               View / Download CV
+               </motion.a>
               
               <motion.button onClick={() => scrollToSection('portfolio')} whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }} className="px-6 py-3 border border-white/20 text-slate-300 text-[10px] font-bold tracking-[0.2em] uppercase rounded-sm hover:bg-white/5 transition-colors">
                 View Work
