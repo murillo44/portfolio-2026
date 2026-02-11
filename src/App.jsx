@@ -1,320 +1,347 @@
-import React, { useState, useEffect, useMemo } from 'react'
+import React, { useState, useEffect, useRef, useMemo, Suspense } from 'react'
 import { motion } from 'framer-motion'
+import { Canvas, useFrame, useThree } from '@react-three/fiber'
+import { Float, PointMaterial, Points } from '@react-three/drei'
+import * as THREE from 'three'
 
-// --- COMPONENTE 1: TIPEADO ROTATIVO (Frase Completa) ---
+// --- 1. ICONOS SVG (Para no depender de librerías externas) ---
+const GithubIcon = () => (
+  <svg viewBox="0 0 24 24" fill="currentColor" className="w-5 h-5">
+    <path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"/>
+  </svg>
+)
+
+const LinkedinIcon = () => (
+  <svg viewBox="0 0 24 24" fill="currentColor" className="w-5 h-5">
+    <path d="M19 0h-14c-2.761 0-5 2.239-5 5v14c0 2.761 2.239 5 5 5h14c2.762 0 5-2.239 5-5v-14c0-2.761-2.238-5-5-5zm-11 19h-3v-11h3v11zm-1.5-12.268c-.966 0-1.75-.79-1.75-1.764s.784-1.764 1.75-1.764 1.75.79 1.75 1.764-.783 1.764-1.75 1.764zm13.5 12.268h-3v-5.604c0-3.368-4-3.113-4 0v5.604h-3v-11h3v1.765c1.396-2.586 7-2.777 7 2.476v6.759z"/>
+  </svg>
+)
+
+const InstagramIcon = () => (
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-5 h-5">
+    <rect x="2" y="2" width="20" height="20" rx="5" ry="5"></rect>
+    <path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"></path>
+    <line x1="17.5" y1="6.5" x2="17.51" y2="6.5"></line>
+  </svg>
+)
+
+// --- 2. LÓGICA DE TEXTOS ---
 const TypewriterRotating = ({ texts }) => {
   const [index, setIndex] = useState(0);
   const [subIndex, setSubIndex] = useState(0);
   const [reverse, setReverse] = useState(false);
   const [blink, setBlink] = useState(true);
 
-  // Parpadeo del cursor
+  useEffect(() => { const t = setTimeout(() => setBlink((p) => !p), 500); return () => clearTimeout(t); }, [blink]);
   useEffect(() => {
-    const timeout2 = setTimeout(() => {
-      setBlink((prev) => !prev);
-    }, 500);
-    return () => clearTimeout(timeout2);
-  }, [blink]);
-
-  // Lógica de tipeo y borrado
-  useEffect(() => {
-    // Si terminó de escribir la frase completa
-    if (subIndex === texts[index].length + 1 && !reverse) {
-      setTimeout(() => setReverse(true), 2500); // Espera un poco más para que se lea bien
-      return;
-    }
-
-    // Si terminó de borrar todo
-    if (subIndex === 0 && reverse) {
-      setReverse(false);
-      setIndex((prev) => (prev + 1) % texts.length);
-      return;
-    }
-
-    // Velocidad de tipeo
-    const timeout = setTimeout(() => {
-      setSubIndex((prev) => prev + (reverse ? -1 : 1)); // Borra de a uno, escribe de a uno
-    }, reverse ? 30 : 50); // Borra rápido (30ms), escribe normal (50ms)
-
-    return () => clearTimeout(timeout);
+    if (subIndex === texts[index].length + 1 && !reverse) { setTimeout(() => setReverse(true), 2500); return; }
+    if (subIndex === 0 && reverse) { setReverse(false); setIndex((p) => (p + 1) % texts.length); return; }
+    const t = setTimeout(() => setSubIndex((p) => p + (reverse ? -1 : 1)), reverse ? 30 : 50); return () => clearTimeout(t);
   }, [subIndex, index, reverse, texts]);
 
   return (
-    <span className="font-mono text-cyan-400 text-xl md:text-2xl h-8 block">
+    <span className="font-mono text-cyan-400 text-lg md:text-xl h-8 block">
       {`${texts[index].substring(0, subIndex)}`}
       <span className={`${blink ? 'opacity-100' : 'opacity-0'} text-white ml-1`}>|</span>
     </span>
   );
 };
 
-// --- COMPONENTE 2: TIPEADO DE PÁRRAFO (Cursor persistente) ---
 const TypewriterParagraph = ({ text }) => {
   const [displayedText, setDisplayedText] = useState("");
   const [started, setStarted] = useState(false);
-  const [blink, setBlink] = useState(true);
-
-  // Parpadeo del cursor (siempre activo)
-  useEffect(() => {
-    const blinkInterval = setInterval(() => {
-      setBlink((prev) => !prev);
-    }, 500);
-    return () => clearInterval(blinkInterval);
-  }, []);
-
-  // Inicio retrasado
-  useEffect(() => {
-    const startTimeout = setTimeout(() => {
-      setStarted(true);
-    }, 1500); // Empieza después que el título
-    return () => clearTimeout(startTimeout);
-  }, []);
-
-  // Lógica de escritura
+  useEffect(() => { const t = setTimeout(() => setStarted(true), 1500); return () => clearTimeout(t); }, []);
   useEffect(() => {
     if (!started) return;
-
     if (displayedText.length < text.length) {
-      const timeout = setTimeout(() => {
-        setDisplayedText(text.slice(0, displayedText.length + 1));
-      }, 20); // Velocidad rápida para que no aburra
-      return () => clearTimeout(timeout);
+      const t = setTimeout(() => setDisplayedText(text.slice(0, displayedText.length + 1)), 20); return () => clearTimeout(t);
     }
   }, [displayedText, text, started]);
+  return (<span className="inline-block">{displayedText}<span className="animate-pulse text-cyan-400 font-bold ml-1">_</span></span>);
+};
+
+// --- 3. MOTOR 3D (MORPHING) ---
+const getSpherePositions = (count) => {
+  const positions = new Float32Array(count * 3);
+  for (let i = 0; i < count; i++) {
+    const r = 1.8 + Math.random() * 0.6; 
+    const theta = 2 * Math.PI * Math.random();
+    const phi = Math.acos(2 * Math.random() - 1);
+    positions[i * 3] = r * Math.sin(phi) * Math.cos(theta);
+    positions[i * 3 + 1] = r * Math.sin(phi) * Math.sin(theta);
+    positions[i * 3 + 2] = r * Math.cos(phi);
+  }
+  return positions;
+};
+const getCubePositions = (count) => {
+  const positions = new Float32Array(count * 3);
+  for (let i = 0; i < count; i++) {
+    const x = (Math.random() - 0.5) * 4;
+    const y = (Math.random() - 0.5) * 4;
+    const z = (Math.random() - 0.5) * 4;
+    positions[i * 3] = x;
+    positions[i * 3 + 1] = y;
+    positions[i * 3 + 2] = z;
+  }
+  return positions;
+};
+const getHelixPositions = (count) => {
+  const positions = new Float32Array(count * 3);
+  for (let i = 0; i < count; i++) {
+    const t = i * 0.05; 
+    const r = 1.8; 
+    const x = r * Math.cos(t) + (Math.random() - 0.5) * 0.5;
+    const y = (i * 0.008) - 3; 
+    const z = r * Math.sin(t) + (Math.random() - 0.5) * 0.5;
+    positions[i * 3] = x; positions[i * 3 + 1] = y; positions[i * 3 + 2] = z;
+  }
+  return positions;
+};
+const getTorusPositions = (count) => {
+  const positions = new Float32Array(count * 3);
+  for (let i = 0; i < count; i++) {
+    const u = Math.random() * Math.PI * 2;
+    const v = Math.random() * Math.PI * 2;
+    const R = 3; const r = 0.8;
+    positions[i * 3] = (R + r * Math.cos(v)) * Math.cos(u);
+    positions[i * 3 + 1] = (R + r * Math.cos(v)) * Math.sin(u);
+    positions[i * 3 + 2] = r * Math.sin(v);
+  }
+  return positions;
+};
+
+const MorphingParticles = ({ currentShape }) => {
+  const ref = useRef();
+  const count = 3500; 
+  
+  const sphere = useMemo(() => getSpherePositions(count), []);
+  const cube = useMemo(() => getCubePositions(count), []);
+  const helix = useMemo(() => getHelixPositions(count), []);
+  const torus = useMemo(() => getTorusPositions(count), []);
+  const currentPositions = useMemo(() => new Float32Array(sphere), [sphere]);
+
+  useFrame((state, delta) => {
+    if (!ref.current) return;
+    let target = sphere;
+    if (currentShape === 'about') target = helix;
+    else if (currentShape === 'portfolio') target = cube;
+    else if (currentShape === 'contact') target = torus;
+
+    const speed = 0.025; 
+    const positions = ref.current.geometry.attributes.position.array;
+    for (let i = 0; i < count * 3; i++) {
+      positions[i] += (target[i] - positions[i]) * speed;
+    }
+    ref.current.geometry.attributes.position.needsUpdate = true;
+    ref.current.rotation.y += delta * 0.08;
+    ref.current.rotation.x += delta * 0.02;
+  });
 
   return (
-    <span className="inline-block">
-      {displayedText}
-      {/* El cursor SIEMPRE está ahí, parpadeando al final */}
-      <span className={`${blink ? 'opacity-100' : 'opacity-0'} text-cyan-400 font-bold ml-1`}>|</span>
-    </span>
+    <group>
+      <Points ref={ref} positions={currentPositions} stride={3} frustumCulled={false}>
+        <PointMaterial transparent color="#22d3ee" size={0.02} sizeAttenuation={true} depthWrite={false} opacity={0.6} />
+      </Points>
+    </group>
   );
 };
 
-// --- COMPONENTE 3: LLUVIA DE CÓDIGO (MATRIX RAIN) - GLOBAL ---
-const MatrixRain = () => {
-  const streams = useMemo(() => {
-    return Array.from({ length: 25 }).map((_, i) => { // Un poco más de lluvia
-      const len = Math.floor(Math.random() * 20) + 10;
-      let content = "";
-      const chars = "10AFZNPQR79X"; 
-      for (let j = 0; j < len; j++) {
-        content += chars[Math.floor(Math.random() * chars.length)] + "\n";
-      }
-      return {
-        id: i,
-        x: Math.random() * 100, 
-        delay: Math.random() * -10, 
-        duration: Math.random() * 10 + 10, 
-        fontSize: Math.random() * 12 + 10, 
-        content: content
-      };
-    });
-  }, []);
-
+const Scene3D = ({ section }) => {
   return (
-    <div className="fixed top-0 right-0 w-full h-full pointer-events-none select-none overflow-hidden z-0">
-      <div 
-        className="absolute inset-0 z-10"
-        style={{
-           background: 'linear-gradient(to right, #030303 30%, transparent 100%)' 
-        }}
-      ></div>
-      {streams.map((stream) => (
-        <motion.div
-          key={stream.id}
-          initial={{ y: -1000 }}
-          animate={{ y: "110vh" }}
-          transition={{
-            duration: stream.duration,
-            repeat: Infinity,
-            delay: stream.delay,
-            ease: "linear",
-          }}
-          style={{ left: `${stream.x}%`, fontSize: `${stream.fontSize}px` }}
-          className="absolute top-0 text-cyan-500/30 whitespace-pre text-center leading-none flex flex-col"
-        >
-            {stream.content.split('\n').map((char, idx) => (
-                <span key={idx} className={Math.random() > 0.95 ? 'text-white/70 text-shadow-cyan' : ''}>{char}</span>
-            ))}
-        </motion.div>
-      ))}
+    <div className="fixed top-0 left-0 w-full h-screen z-0 pointer-events-none">
+      <Canvas camera={{ position: [0, 0, 7], fov: 50 }} gl={{ antialias: true, alpha: true }}>
+        <fog attach="fog" args={['#050505', 5, 15]} />
+        <ambientLight intensity={0.2} />
+        <pointLight position={[10, 10, 10]} intensity={1.5} color="#22d3ee" />
+        <Float speed={1.5} rotationIntensity={0.2} floatIntensity={0.5}>
+          <MorphingParticles currentShape={section} />
+        </Float>
+      </Canvas>
     </div>
   );
 };
 
-
+// --- 4. APP PRINCIPAL ---
 function App() {
   const [scrolled, setScrolled] = useState(false);
+  const [currentSection, setCurrentSection] = useState('home');
 
   useEffect(() => {
-    const handleScroll = () => setScrolled(window.scrollY > 30);
+    const handleScroll = () => {
+      setScrolled(window.scrollY > 30);
+      const sections = ['home', 'about', 'portfolio', 'contact'];
+      for (const id of sections) {
+        const element = document.getElementById(id);
+        if (element) {
+          const rect = element.getBoundingClientRect();
+          if (rect.top <= window.innerHeight * 0.6 && rect.bottom >= window.innerHeight * 0.4) {
+            setCurrentSection(id);
+            break;
+          }
+        }
+      }
+    };
     window.addEventListener('scroll', handleScroll);
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
   const scrollToSection = (id) => {
     const element = document.getElementById(id);
-    if (element) {
-      element.scrollIntoView({ behavior: 'smooth', block: 'start' });
-    }
+    if (element) element.scrollIntoView({ behavior: 'smooth', block: 'start' });
   };
 
-  const containerVariants = {
-    hidden: { opacity: 0 },
-    visible: { opacity: 1, transition: { staggerChildren: 0.1 } }
-  };
-
-  const itemVariants = {
+  const fadeIn = {
     hidden: { opacity: 0, y: 20 },
-    visible: { opacity: 1, y: 0, transition: { duration: 0.6, ease: "easeOut" } }
+    visible: { opacity: 1, y: 0, transition: { duration: 0.8, ease: "easeOut" } }
   };
 
   return (
-    <div className="bg-[#030303] text-slate-300 font-sans selection:bg-cyan-500/30 overflow-x-hidden relative">
+    <div className="bg-[#050505] text-slate-300 font-sans selection:bg-cyan-500/30 overflow-x-hidden relative">
       
-      {/* FONDO GLOBAL FIJO */}
-      <MatrixRain />
+      {/* 3D SCENE */}
+      <Scene3D section={currentSection} />
+      
+      {/* Luces Ambientales */}
+      <div className="fixed top-[-20%] left-[-10%] w-[60vw] h-[60vw] bg-cyan-900/10 rounded-full blur-[150px] pointer-events-none z-0 mix-blend-screen" />
 
-      {/* NAVBAR */}
+      {/* NAVBAR CON ICONOS */}
       <motion.nav 
         initial={{ y: -100 }}
         animate={{ y: 0 }}
-        className={`fixed top-0 w-full z-50 transition-all duration-300 ${scrolled ? 'bg-[#030303]/90 backdrop-blur-md border-b border-white/5 py-4' : 'bg-transparent py-6 md:py-8'}`}
+        className={`fixed top-0 w-full z-50 transition-all duration-500 ${scrolled ? 'bg-[#050505]/90 border-b border-white/5 py-4' : 'bg-transparent py-6'}`}
       >
-        <div className="max-w-7xl mx-auto px-6 flex items-center justify-between relative">
-          
-          <div onClick={() => scrollToSection('home')} className="text-white font-bold tracking-tight text-lg cursor-pointer z-20 hover:opacity-80 transition-opacity">
-            Mateo<span className="text-cyan-400">.M</span>
+        <div className="max-w-7xl mx-auto px-6 flex items-center justify-between">
+          <div onClick={() => scrollToSection('home')} className="text-white font-mono font-bold tracking-tight text-sm cursor-pointer hover:opacity-80 transition-opacity">
+            MATEO<span className="text-cyan-400">.DEV</span>
           </div>
-          
-          {/* Menú Centrado */}
-          <div className="absolute left-1/2 top-1/2 transform -translate-x-1/2 -translate-y-1/2 hidden md:flex gap-10 text-[12px] font-medium tracking-widest text-slate-400 uppercase">
+          <div className="hidden md:flex gap-8 text-[11px] font-medium tracking-[0.15em] text-slate-400 uppercase">
             {['Home', 'About', 'Portfolio', 'Contact'].map((item) => (
-              <button 
-                key={item} 
-                onClick={() => scrollToSection(item.toLowerCase())} 
-                className="hover:text-white transition-colors relative group py-1"
-              >
+              <button key={item} onClick={() => scrollToSection(item.toLowerCase())} className={`hover:text-white transition-colors relative group ${currentSection === item.toLowerCase() ? 'text-white' : ''}`}>
                 {item}
-                <span className="absolute bottom-0 left-0 w-0 h-px bg-cyan-400 transition-all duration-300 group-hover:w-full"></span>
               </button>
             ))}
           </div>
-
-          {/* Redes Sociales */}
-          <div className="hidden md:flex gap-6 items-center z-20">
-            <a href="https://instagram.com/" target="_blank" rel="noopener noreferrer" className="text-slate-400 hover:text-pink-500 transition-colors transform hover:scale-110">
-              <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="2" y="2" width="20" height="20" rx="5" ry="5"></rect><path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"></path><line x1="17.5" y1="6.5" x2="17.51" y2="6.5"></line></svg>
-            </a>
-            <a href="https://github.com/" target="_blank" rel="noopener noreferrer" className="text-slate-400 hover:text-white transition-colors transform hover:scale-110">
-              <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9 19c-5 1.5-5-2.5-7-3m14 6v-3.87a3.37 3.37 0 0 0-.94-2.61c3.14-.35 6.44-1.54 6.44-7A5.44 5.44 0 0 0 20 4.77 5.07 5.07 0 0 0 19.91 1S18.73.65 16 2.48a13.38 13.38 0 0 0-7 0C6.27.65 5.09 1 5.09 1A5.07 5.07 0 0 0 5 4.77a5.44 5.44 0 0 0-1.5 3.78c0 5.42 3.3 6.61 6.44 7A3.37 3.37 0 0 0 9 18.13V22"></path></svg>
-            </a>
+          
+          {/* AQUÍ ESTÁN LOS ICONOS SOCIALES */}
+          <div className="hidden md:flex gap-5 items-center">
+             <a href="https://github.com/murillo44" target="_blank" rel="noopener noreferrer" className="text-slate-400 hover:text-white transition-all transform hover:scale-110">
+                <GithubIcon />
+             </a>
+             <a href="https://www.linkedin.com/in/mateo-murillo-/" target="_blank" rel="noopener noreferrer" className="text-slate-400 hover:text-cyan-400 transition-all transform hover:scale-110">
+                <LinkedinIcon />
+             </a>
+             <a href="https://www.instagram.com/mateomurilloo/?hl=es" target="_blank" rel="noopener noreferrer" className="text-slate-400 hover:text-pink-500 transition-all transform hover:scale-110">
+                <InstagramIcon />
+             </a>
           </div>
         </div>
       </motion.nav>
 
-      {/* --- HERO SECTION --- */}
-      <section id="home" className="min-h-screen flex flex-col justify-center px-6 relative z-10 pt-10">
-        
-        <div className="max-w-6xl mx-auto w-full grid grid-cols-1 md:grid-cols-2 gap-12 items-center">
-          
-          <motion.div 
-            variants={containerVariants}
-            initial="hidden"
-            animate="visible"
-            className="relative z-20"
-          >
-            <motion.div variants={itemVariants} className="inline-flex items-center gap-2 px-3 py-1 mb-6 border border-white/10 bg-white/5 rounded-full backdrop-blur-sm">
-              <span className="w-1.5 h-1.5 rounded-full bg-cyan-400 animate-pulse"></span>
-              <span className="text-[10px] font-bold tracking-widest text-slate-300 uppercase">Open to work</span>
-            </motion.div>
-
-            <motion.h1 variants={itemVariants} className="text-5xl md:text-7xl font-black text-white tracking-tighter mb-6 leading-[0.95]">
-              MATEO <br/>
-              MURILLO.
-            </motion.h1>
-
-            {/* Efecto tipeado rotativo (Incluye "I am a...") */}
-            <motion.div variants={itemVariants} className="mb-8 min-h-[40px] flex items-center">
-              <TypewriterRotating texts={[
-                "I am a Systems Engineering Student.", 
-                "I am a .NET Developer.", 
-                "I am a Cybersecurity Enthusiast."
-              ]} />
-            </motion.div>
-
-            {/* Efecto tipeado estático para el párrafo completo */}
-            <motion.div variants={itemVariants} className="text-slate-400 leading-relaxed max-w-lg mb-10 text-base md:text-lg bg-[#030303]/50 md:bg-transparent backdrop-blur-sm md:backdrop-blur-none p-2 md:p-0 rounded min-h-[80px]">
-              <TypewriterParagraph 
-                text="Estudiante de 4to año de Ingeniería en Sistemas. Fusiono el desarrollo backend robusto con la seguridad de redes." 
-              />
-            </motion.div>
+      {/* --- SECCIONES --- */}
+      
+      {/* HOME */}
+      <section id="home" className="min-h-screen flex flex-col justify-center px-6 relative z-10 pt-20 pointer-events-none">
+        <div className="max-w-6xl mx-auto w-full grid grid-cols-1 lg:grid-cols-2 gap-16 items-center pointer-events-auto">
+          <motion.div initial="hidden" animate="visible" variants={fadeIn}>
             
-            <motion.div variants={itemVariants} className="flex flex-wrap gap-4">
-              <motion.button 
-              onClick={() => window.open('/cv.pdf', '_blank')} // <--- Asegurate que tenga la /
-              whileHover={{ scale: 1.02 }}
-              whileTap={{ scale: 0.98 }}
-              className="px-8 py-4 bg-white text-black text-xs font-bold tracking-widest uppercase rounded hover:bg-cyan-50 transition-colors"
->
-              Download CV
-              </motion.button>  
-              <motion.button 
-                onClick={() => scrollToSection('portfolio')}
-                whileHover={{ scale: 1.02 }}
-                whileTap={{ scale: 0.98 }}
-                className="px-8 py-4 border border-white/20 text-white text-xs font-bold tracking-widest uppercase rounded hover:bg-white/10 transition-colors backdrop-blur-sm bg-black/30"
-              >
-                View Projects
-              </motion.button>
-            </motion.div>
-          </motion.div>
+            <div className="inline-flex items-center gap-2 mb-6 border border-white/10 px-3 py-1 rounded-full bg-black/20 backdrop-blur-sm">
+              <span className="w-1.5 h-1.5 bg-cyan-500 rounded-full animate-pulse"></span>
+              <span className="text-[10px] font-mono tracking-widest text-slate-400 uppercase">Open to work</span>
+            </div>
 
-          {/* Columna derecha libre */}
-          <div></div>
-          
+            <h1 className="text-4xl md:text-5xl font-semibold text-white tracking-tight mb-6">
+              Mateo Murillo
+            </h1>
+
+            <div className="mb-8 min-h-[30px] flex items-center border-l-2 border-cyan-500/50 pl-4">
+              <TypewriterRotating texts={["Systems Engineering Student.", ".NET Core Specialist.", "Cybersecurity Enthusiast."]} />
+            </div>
+
+            <div className="text-slate-400 leading-relaxed max-w-lg mb-10 text-base font-light font-mono">
+              <TypewriterParagraph text="> Inicializando perfil profesional. Arquitectura de software segura y desarrollo backend escalable." />
+            </div>
+            
+            <div className="flex flex-wrap gap-4">
+              {/* BOTÓN DOWNLOAD CV CONFIGURADO */}
+              <motion.a 
+               href="/cv.pdf" 
+               download="Mateo_Murillo_CV.pdf"
+               whileHover={{ scale: 1.02 }} 
+               whileTap={{ scale: 0.98 }} 
+               className="px-6 py-3 bg-white text-black text-[10px] font-bold tracking-[0.2em] uppercase rounded-sm hover:bg-cyan-400 transition-colors inline-block text-center cursor-pointer"
+              >
+               Download CV
+              </motion.a>
+              
+              <motion.button onClick={() => scrollToSection('portfolio')} whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }} className="px-6 py-3 border border-white/20 text-slate-300 text-[10px] font-bold tracking-[0.2em] uppercase rounded-sm hover:bg-white/5 transition-colors">
+                View Work
+              </motion.button>
+            </div>
+          </motion.div>
+          <div className="hidden lg:block"></div>
         </div>
       </section>
 
-      {/* --- SECCIONES SIGUIENTES --- */}
-      
       {/* ABOUT */}
-      <motion.section id="about" initial="hidden" whileInView="visible" viewport={{ once: true }} variants={containerVariants} className="min-h-screen flex flex-col justify-center border-t border-white/5 px-6 relative z-10">
-           <div className="max-w-6xl mx-auto grid grid-cols-1 md:grid-cols-5 gap-12 items-center">
-             <div className="md:col-span-2"><motion.h2 variants={itemVariants} className="text-3xl md:text-5xl font-bold text-white leading-tight">Mi Enfoque <br/><span className="text-cyan-400">Técnico.</span></motion.h2></div>
-             <div className="md:col-span-3 space-y-8"><motion.div variants={itemVariants} className="text-slate-400 leading-relaxed text-lg md:text-xl space-y-6 font-light bg-[#030303]/80 backdrop-blur-sm p-6 rounded-2xl border border-white/5"><p>Mi formación universitaria me da la estructura lógica, y mi curiosidad autodidacta me mantiene al día con tecnologías como <strong>.NET 8</strong> y protocolos de seguridad modernos.</p><p>Me especializo en construir soluciones robustas con <strong>.NET y SQL Server</strong>, aplicando principios de seguridad de redes <strong>(Cisco)</strong> para garantizar infraestructuras resilientes.</p></motion.div></div>
+      <motion.section id="about" initial="hidden" whileInView="visible" viewport={{ once: true }} variants={fadeIn} className="min-h-screen flex flex-col justify-center py-20 px-6">
+           <div className="max-w-4xl mx-auto text-center mb-16 z-10">
+             <h2 className="text-3xl font-bold text-white mb-4">Core <span className="text-cyan-400">Logics</span></h2>
+             <p className="text-slate-400 text-sm font-light leading-relaxed max-w-xl mx-auto">
+               Combinando estructura académica con agilidad autodidacta.
+             </p>
+           </div>
+           <div className="max-w-4xl mx-auto grid grid-cols-2 md:grid-cols-4 gap-4 z-10">
+              {['.NET Core', 'C#', 'SQL Server', 'CyberOps', 'React', 'Git', 'Docker', 'Networking'].map((skill) => (
+                <div key={skill} className="p-3 border border-white/10 rounded-sm bg-black/40 hover:border-cyan-500/50 transition-colors text-center text-xs font-mono text-slate-300 tracking-wider">
+                  {skill}
+                </div>
+              ))}
            </div>
       </motion.section>
 
       {/* PORTFOLIO */}
-      <section id="portfolio" className="min-h-screen flex flex-col justify-center py-20 border-t border-white/5 px-6 relative z-10"> 
-        <div className="max-w-6xl mx-auto w-full">
-           <motion.h2 initial={{ opacity: 0 }} whileInView={{ opacity: 1 }} viewport={{ once: true }} className="text-xs font-mono text-slate-500 uppercase tracking-widest mb-16 border-b border-white/5 pb-4">Selected Projects</motion.h2>
+      <section id="portfolio" className="min-h-screen flex flex-col justify-center py-20 px-6"> 
+        <div className="max-w-6xl mx-auto w-full z-10">
+           <div className="flex justify-between items-end mb-16 border-b border-white/5 pb-4">
+              <h2 className="text-3xl font-bold text-white">Projects_</h2>
+              <span className="hidden md:block text-slate-500 font-mono text-xs">v.2026</span>
+           </div>
+           
            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-              <motion.div whileHover={{ y: -5 }} className="group bg-[#0A0A0A]/90 backdrop-blur-md border border-white/5 p-8 rounded-2xl hover:border-cyan-900/30 transition-all duration-500">
-                  <div className="flex justify-between items-start mb-8"><div className="p-3 bg-white/5 rounded-xl"><img src="https://raw.githubusercontent.com/devicons/devicon/master/icons/csharp/csharp-original.svg" className="w-8 h-8" /></div><span className="text-[10px] font-bold tracking-widest text-slate-500 border border-white/10 px-3 py-1 rounded-full">2025</span></div>
-                  <h3 className="text-2xl font-bold text-white mb-3 group-hover:text-cyan-400 transition-colors">Sistema de Gestión Integral</h3>
-                  <p className="text-slate-400 text-sm mb-6 leading-relaxed">Backend robusto desarrollado en .NET Core. Implementa arquitectura en capas, Entity Framework y optimización de bases de datos SQL Server.</p>
-                  <div className="flex gap-3 text-[10px] text-cyan-400 font-bold tracking-wider uppercase"><span>.NET Core</span><span>•</span><span>SQL Server</span></div>
+              <motion.div whileHover={{ y: -5 }} className="group relative bg-[#0A0A0A]/60 border border-white/10 rounded-sm overflow-hidden hover:border-cyan-500/40 transition-all duration-300 h-[400px] flex flex-col justify-end p-8 cursor-pointer">
+                  <div className="absolute inset-0 bg-[url('https://images.unsplash.com/photo-1555099962-4199c345e5dd?q=80&w=1000&auto=format&fit=crop')] bg-cover bg-center opacity-10 group-hover:opacity-30 transition-all mix-blend-overlay"></div>
+                  <div className="relative z-20">
+                    <div className="flex gap-2 mb-4"><span className="text-cyan-400 text-[9px] font-bold tracking-widest uppercase border border-cyan-500/20 px-2 py-1">Backend System</span></div>
+                    <h3 className="text-2xl font-bold text-white mb-2">Gestión Integral</h3>
+                    <p className="text-slate-400 text-xs leading-relaxed">Entity Framework + SQL Server. Arquitectura escalable.</p>
+                  </div>
               </motion.div>
-              <motion.div whileHover={{ y: -5 }} className="group bg-[#0A0A0A]/90 backdrop-blur-md border border-white/5 p-8 rounded-2xl hover:border-cyan-900/30 transition-all duration-500">
-                  <div className="flex justify-between items-start mb-8"><div className="p-3 bg-white/5 rounded-xl"><img src="/cisco.png" className="w-8 h-8 object-contain invert" /></div><span className="text-[10px] font-bold tracking-widest text-slate-500 border border-white/10 px-3 py-1 rounded-full">ACADEMIC</span></div>
-                  <h3 className="text-2xl font-bold text-white mb-3 group-hover:text-cyan-400 transition-colors">Defensa de Red Crítica</h3>
-                  <p className="text-slate-400 text-sm mb-6 leading-relaxed">Simulación de infraestructura segura. Configuración de routing OSPF, ACLs para segmentación y hardening de dispositivos.</p>
-                  <div className="flex gap-3 text-[10px] text-cyan-400 font-bold tracking-wider uppercase"><span>CyberOps</span><span>•</span><span>Packet Tracer</span></div>
+              <motion.div whileHover={{ y: -5 }} className="group relative bg-[#0A0A0A]/60 border border-white/10 rounded-sm overflow-hidden hover:border-purple-500/40 transition-all duration-300 h-[400px] flex flex-col justify-end p-8 cursor-pointer">
+                  <div className="absolute inset-0 bg-[url('https://images.unsplash.com/photo-1558494949-efc02570fbc9?q=80&w=1000&auto=format&fit=crop')] bg-cover bg-center opacity-10 group-hover:opacity-30 transition-all mix-blend-overlay"></div>
+                  <div className="relative z-20">
+                    <div className="flex gap-2 mb-4"><span className="text-purple-400 text-[9px] font-bold tracking-widest uppercase border border-purple-500/20 px-2 py-1">NetSec</span></div>
+                    <h3 className="text-2xl font-bold text-white mb-2">Defensa de Red</h3>
+                    <p className="text-slate-400 text-xs leading-relaxed">Hardening de routers Cisco & OSPF routing.</p>
+                  </div>
               </motion.div>
            </div>
         </div>
       </section>
 
-      {/* FOOTER */}
-      <footer id="contact" className="min-h-[60vh] flex flex-col justify-center border-t border-white/5 bg-[#080808] relative z-10">
-        <motion.div initial={{ opacity: 0 }} whileInView={{ opacity: 1 }} viewport={{ once: true }} className="max-w-2xl mx-auto px-6 text-center">
-          <h2 className="text-3xl md:text-4xl font-bold text-white mb-6">¿Conectamos?</h2>
-          <p className="text-slate-400 mb-10">Estoy buscando activamente oportunidades para comenzar mi carrera profesional.</    p>
-          <a href="mailto:tuemail@gmail.com" className="inline-block px-10 py-4 bg-white text-black font-bold tracking-widest uppercase rounded hover:bg-cyan-400 hover:scale-105 transition-all">Enviar Email</a>
-          <div className="mt-16 pt-8 border-t border-white/5 flex flex-col md:flex-row justify-between items-center gap-4 text-xs font-mono text-slate-600"><span>BUENOS AIRES, ARGENTINA</span><span>© 2026 MATEO MURILLO</span></div>
-        </motion.div>
+      {/* CONTACT */}
+      <footer id="contact" className="min-h-[70vh] flex flex-col justify-center py-20 border-t border-white/5 bg-transparent relative z-10">
+        <div className="max-w-7xl mx-auto px-6 text-center">
+          <h2 className="text-4xl font-bold text-white mb-6">/init_connection</h2>
+          <p className="text-slate-500 text-sm mb-10 max-w-md mx-auto font-mono">
+            Esperando solicitud de enlace. Disponible para primer experiencia.
+          </p>
+          <a href="mailto:tuemail@gmail.com" className="inline-block px-10 py-4 bg-white text-black text-xs font-bold tracking-[0.2em] uppercase rounded-sm hover:bg-cyan-400 hover:scale-105 transition-all">
+            Contact Me
+          </a>
+          <div className="mt-20 text-[10px] text-slate-700 font-mono">
+            MATEO MURILLO © 2026. SYSTEM ONLINE.
+          </div>
+        </div>
       </footer>
     </div>
   )
