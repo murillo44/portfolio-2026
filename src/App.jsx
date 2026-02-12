@@ -199,23 +199,45 @@ function App() {
       {/* Luces Ambientales */}
       <div className="fixed top-[-20%] left-[-10%] w-[60vw] h-[60vw] bg-cyan-900/10 rounded-full blur-[150px] pointer-events-none z-0 mix-blend-screen" />
 
-      {/* NAVBAR */}
+      {/* NAVBAR RESPONSIVE */}
       <motion.nav 
         initial={{ y: -100 }}
         animate={{ y: 0 }}
         className={`fixed top-0 w-full z-50 transition-all duration-500 ${scrolled ? 'bg-[#050505]/90 border-b border-white/5 py-4' : 'bg-transparent py-6'}`}
       >
         <div className="max-w-7xl mx-auto px-6 flex items-center justify-between">
-          <div onClick={() => scrollToSection('home')} className="text-white font-mono font-bold tracking-tight text-sm cursor-pointer hover:opacity-80 transition-opacity">
+          
+          {/* LOGO (Visible siempre) */}
+          <div onClick={() => scrollToSection('home')} className="text-white font-mono font-bold tracking-tight text-sm cursor-pointer hover:opacity-80 transition-opacity z-50">
             MATEO<span className="text-cyan-400">.DEV</span>
           </div>
-          <div className="hidden md:flex gap-8 text-[11px] font-medium tracking-[0.15em] text-slate-400 uppercase">
+
+          {/* MENÚ DE TEXTO (Oculto en celular 'hidden', visible en PC 'md:flex') */}
+          <div className="hidden md:flex gap-8 text-[11px] font-medium tracking-[0.15em] text-slate-400 uppercase absolute left-1/2 transform -translate-x-1/2">
             {['Home', 'About', 'Portfolio', 'Contact'].map((item) => (
               <button key={item} onClick={() => scrollToSection(item.toLowerCase())} className={`hover:text-white transition-colors relative group ${currentSection === item.toLowerCase() ? 'text-white' : ''}`}>
                 {item}
               </button>
             ))}
           </div>
+          
+          {/* ICONOS SOCIALES (Visible SIEMPRE) 
+              Cambié 'hidden md:flex' por 'flex' para que aparezca en el celular también.
+              Agregué 'scale-90' para que sean un poquito más chicos en móvil.
+          */}
+          <div className="flex gap-4 md:gap-5 items-center scale-90 md:scale-100 z-50">
+             <a href="https://github.com/TU_USUARIO" target="_blank" rel="noopener noreferrer" className="text-slate-400 hover:text-white transition-all transform hover:scale-110">
+                <GithubIcon />
+             </a>
+             <a href="https://linkedin.com/in/TU_USUARIO" target="_blank" rel="noopener noreferrer" className="text-slate-400 hover:text-cyan-400 transition-all transform hover:scale-110">
+                <LinkedinIcon />
+             </a>
+             <a href="https://instagram.com/TU_USUARIO" target="_blank" rel="noopener noreferrer" className="text-slate-400 hover:text-pink-500 transition-all transform hover:scale-110">
+                <InstagramIcon />
+             </a>
+          </div>
+        </div>
+      </motion.nav>
           
           {/* ICONOS SOCIALES */}
           <div className="hidden md:flex gap-5 items-center">
@@ -241,7 +263,7 @@ function App() {
             
             <div className="inline-flex items-center gap-2 mb-6 border border-white/10 px-3 py-1 rounded-full bg-black/20 backdrop-blur-sm">
               <span className="w-1.5 h-1.5 bg-cyan-500 rounded-full animate-pulse"></span>
-              <span className="text-[10px] font-mono tracking-widest text-slate-400 uppercase">System Ready</span>
+              <span className="text-[10px] font-mono tracking-widest text-slate-400 uppercase">Open to Work</span>
             </div>
 
             <h1 className="text-4xl md:text-5xl font-semibold text-white tracking-tight mb-6">
