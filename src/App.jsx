@@ -226,21 +226,6 @@ function App() {
               Agregué 'scale-90' para que sean un poquito más chicos en móvil.
           */}
           <div className="flex gap-4 md:gap-5 items-center scale-90 md:scale-100 z-50">
-             <a href="https://github.com/TU_USUARIO" target="_blank" rel="noopener noreferrer" className="text-slate-400 hover:text-white transition-all transform hover:scale-110">
-                <GithubIcon />
-             </a>
-             <a href="https://linkedin.com/in/TU_USUARIO" target="_blank" rel="noopener noreferrer" className="text-slate-400 hover:text-cyan-400 transition-all transform hover:scale-110">
-                <LinkedinIcon />
-             </a>
-             <a href="https://instagram.com/TU_USUARIO" target="_blank" rel="noopener noreferrer" className="text-slate-400 hover:text-pink-500 transition-all transform hover:scale-110">
-                <InstagramIcon />
-             </a>
-          </div>
-        </div>
-      </motion.nav>
-          
-          {/* ICONOS SOCIALES */}
-          <div className="hidden md:flex gap-5 items-center">
              <a href="https://github.com/murillo44" target="_blank" rel="noopener noreferrer" className="text-slate-400 hover:text-white transition-all transform hover:scale-110">
                 <GithubIcon />
              </a>
@@ -253,6 +238,8 @@ function App() {
           </div>
         </div>
       </motion.nav>
+          
+          
 
       {/* --- SECCIONES --- */}
       
