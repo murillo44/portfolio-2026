@@ -14,7 +14,7 @@ const InstagramIcon = () => (<svg viewBox="0 0 24 24" fill="none" stroke="curren
 const toolStack = [
   { name: 'C#', src: '/csharp.png' },
   { name: 'SQL Server', src: '/MSSQL.png' },
-  { name: 'Power BI', src: '/PowerBi.png' },
+  { name: 'Power BI', src: '/powerbi.png' },
   { name: 'Enterprise Architect', src: '/EA.png' },
   { name: 'Python', src: '/Python-.png' },
   { name: 'Visual Studio', src: '/visualstudio.png' },
