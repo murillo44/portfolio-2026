@@ -201,13 +201,26 @@ const MorphingParticles = ({ currentShape }) => {
   });
 
   return (
-    <group>
-      <Points ref={ref} positions={currentPositions} stride={3} frustumCulled={false}>
-        <PointMaterial transparent color="#22d3ee" size={0.02} sizeAttenuation={true} depthWrite={false} opacity={0.6} />
-      </Points>
-    </group>
+  <group>
+    <Points
+      ref={ref}
+      positions={currentPositions}
+      stride={3}
+      frustumCulled={false}
+    >
+      <PointMaterial
+        transparent
+        color="#38e1ff"
+        size={0.022}
+        sizeAttenuation
+        depthWrite={false}
+        opacity={0.8}
+      />
+    </Points>
+  </group>
   );
-};
+
+};  
 
 const Scene3D = ({ section }) => {
   return (
