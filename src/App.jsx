@@ -176,7 +176,8 @@ const getTorusPositions = (count) => {
 
 const MorphingParticles = ({ currentShape }) => {
   const ref = useRef();
-  const count = 3500; 
+  const isMobile = window.innerWidth < 768;
+  const count = isMobile ? 800 : 3000;
   const sphere = useMemo(() => getSpherePositions(count), []);
   const cube = useMemo(() => getCubePositions(count), []);
   const helix = useMemo(() => getHelixPositions(count), []);
