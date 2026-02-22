@@ -200,25 +200,36 @@ const MorphingParticles = ({ currentShape }) => {
     ref.current.rotation.x += delta * 0.02;
   });
 
+ const MorphingParticles = ({ currentShape }) => {
+  // 1. Agregamos esta línea al principio del componente
+  const isMobile = typeof window !== 'undefined' && window.innerWidth < 768;
+
+  // ... (aquí dejá todo el código de hooks, useFrame, y variables que ya tenés)
+
+  // 2. Reemplazamos el bloque del return por este:
+  if (isMobile) {
+    return (
+      <div style={{ 
+        position: 'fixed', 
+        top: 0, 
+        left: 0, 
+        width: '100%', 
+        height: '100%', 
+        background: 'radial-gradient(circle at center, #001a1a 0%, #000000 100%)',
+        zIndex: -1 
+      }} />
+    );
+  }
+
   return (
-  <group>
-    <Points
-      ref={ref}
-      positions={currentPositions}
-      stride={3}
-      frustumCulled={false}
-    >
-      <PointMaterial
-        transparent
-        color="#38e1ff"
-        size={0.022}
-        sizeAttenuation
-        depthWrite={false}
-        opacity={0.8}
-      />
-    </Points>
-  </group>
+    <div style={{ width: '100%', height: '100%', position: 'fixed', top: 0, left: 0, zIndex: -1 }}>
+      {/* AQUÍ VA TU <Canvas> ACTUAL, NO LO TOQUES, SOLO CAMBIAMOS LO DE ARRIBA */}
+      <Canvas>
+         {/* ... tu código existente de Canvas ... */}
+      </Canvas>
+    </div>
   );
+};
 
 };  
 
@@ -346,6 +357,7 @@ function App() {
             </div>
           </motion.div>
         </div>
+        
       </section>
 
       {/* --- ABOUT --- */}
