@@ -176,8 +176,7 @@ const getTorusPositions = (count) => {
 
 const MorphingParticles = ({ currentShape }) => {
   const ref = useRef();
-  const isMobile = window.innerWidth < 768;
-  const count = isMobile ? 800 : 3000;
+  const count = 3500; 
   const sphere = useMemo(() => getSpherePositions(count), []);
   const cube = useMemo(() => getCubePositions(count), []);
   const helix = useMemo(() => getHelixPositions(count), []);
@@ -338,7 +337,7 @@ function App() {
             </div>
             
             <div className="flex flex-wrap gap-4">
-              <motion.a href="/cv.pdf" target="_blank" rel="noopener noreferrer" whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }} className="px-6 py-3 bg-white text-black text-[10px] font-bold tracking-[0.2em] uppercase rounded-sm hover:bg-cyan-400 transition-colors inline-block text-center cursor-pointer">
+              <motion.a href="/cv_Mateo_Murillo.pdf" target="_blank" rel="noopener noreferrer" whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }} className="px-6 py-3 bg-white text-black text-[10px] font-bold tracking-[0.2em] uppercase rounded-sm hover:bg-cyan-400 transition-colors inline-block text-center cursor-pointer">
                 {t.home.cvBtn}
               </motion.a>
               <motion.button onClick={() => scrollToSection('portfolio')} whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }} className="px-6 py-3 border border-white/20 text-slate-300 text-[10px] font-bold tracking-[0.2em] uppercase rounded-sm hover:bg-white/5 transition-colors">
